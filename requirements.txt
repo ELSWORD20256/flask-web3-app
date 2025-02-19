@@ -1,0 +1,11 @@
+flask
+flask-cors
+pandas
+joblib
+requests
+werkzeug
+cryptography
+web3
+json5
+psutil
+scikit-learn

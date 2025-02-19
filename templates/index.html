@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隱私資料處理平台</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        input[type="file"], input[type="text"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results, #verifyResult {
+            margin-top: 20px;
+        }
+        .result-item {
+            background: #f4f4f4;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .verify-section {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>隱私資料處理平台</h1>
+        <!-- 授權表單 -->
+        <div class="form-group">
+            <h2>授權及切換錢包</h2>
+            <label for="walletAddressInput">輸入發起交易的錢包地址：</label>
+            <input type="text" id="walletAddressInput" placeholder="0x...">
+            <label for="senderAddressInput">輸入被授權的錢包地址：</label>
+            <input type="text" id="senderAddressInput" placeholder="0x...">
+            <button id="authorizeWalletBtn">授權並切換錢包</button>
+            <div id="walletAuthResult"></div>
+        </div>
+
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="fileInput">選擇要上傳的檔案：</label>
+                <input type="file" id="fileInput" name="file" accept=".csv, .txt" required>
+            </div>
+            <button type="submit">上傳文件</button>
+        </form>
+        <div class="results" id="results"></div>
+        
+        <div class="verify-section">
+            <h2>驗證 IPFS 哈希值</h2>
+            <div class="form-group">
+                <label for="ipfsHashInput">輸入 IPFS 哈希值：</label>
+                <input type="text" id="ipfsHashInput" placeholder="例如：QmT8...">
+            </div>
+            <button id="verifyBtn">驗證</button>
+            <div id="verifyResult"></div>
+        </div>
+        <div class="form-group">
+            <h2>身份驗證</h2>
+            <label for="checkUserAddress">輸入用戶地址：</label>
+            <input type="text" id="checkUserAddress" placeholder="0x...">
+            <button id="checkAuthBtn">檢查授權</button>
+            <div id="authCheckResult"></div>
+        </div>
+        
+        <div class="form-group">
+            <h2>下載資料</h2>
+            <label for="downloadUserAddress">輸入用戶地址：</label>
+            <input type="text" id="downloadUserAddress" placeholder="0x...">
+            <label for="downloadIpfsHash">輸入 IPFS 哈希值：</label>
+            <input type="text" id="downloadIpfsHash" placeholder="Qm...">
+            <button id="downloadBtn">下載</button>
+            <div id="downloadResult"></div>
+        </div>
+        
+
+
+        
+        <script>
+            const UPLOAD_API_URL = 'http://127.0.0.1:5000/upload';
+            const VERIFY_API_URL = 'http://127.0.0.1:5000/verify';
+            const AUTH_API_URL = 'http://127.0.0.1:5000/authorize_wallet';
+            const CHECK_AUTH_API_URL = 'http://127.0.0.1:5000/check-authorization';
+            const DOWNLOAD_API_URL = 'http://127.0.0.1:5000/download';
+            
+            // 授權錢包
+            document.getElementById("authorizeWalletBtn").addEventListener("click", async () => {
+                const walletAddress = document.getElementById("walletAddressInput").value.trim();
+                const senderAddress = document.getElementById("senderAddressInput").value.trim();
+
+                if (!walletAddress || !senderAddress) {
+                    alert("請輸入有效的錢包地址和發起交易的錢包地址！");
+                    return;
+                }
+
+                try {
+                    const response = await fetch(AUTH_API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                            wallet_address: walletAddress.trim(),
+                            sender_address: senderAddress.trim()
+                        }),
+                    });
+
+                    const result = await response.json();
+                    const walletAuthResult = document.getElementById("walletAuthResult");
+
+                    if (response.ok) {
+                        walletAuthResult.innerHTML = `<p style="color: green;">${result.message}</p>`;
+                        alert(`成功切換至錢包：${senderAddress}`);
+                    } else {
+                        walletAuthResult.innerHTML = `<p style="color: red;">授權失敗：${result.error}</p>`;
+                    }
+                } catch (error) {
+                    console.error("授權過程中發生錯誤:", error);
+                    alert("授權過程中發生錯誤，請檢查伺服器！");
+                }
+            });
+            // 文件上傳
+            document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const fileInput = document.getElementById('fileInput');
+                if (!fileInput.files.length) {
+                    alert('請選擇一個文件！');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                try {
+                    const response = await fetch(UPLOAD_API_URL, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const result = await response.json();
+                    const resultsContainer = document.getElementById('results');
+                    resultsContainer.innerHTML = '';
+
+                    if (response.ok) {
+                        const encryptedResults = result.encrypted_results;
+                        encryptedResults.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'result-item';
+                            div.innerHTML = `
+                                <p><strong>Row:</strong> ${item.row}</p>
+                                <p><strong>Privacy Level:</strong> ${item.privacy_level}</p>
+                                <p><strong>IPFS Hash:</strong> ${item.ipfs_hash}</p>
+                            `;
+                            resultsContainer.appendChild(div);
+                        });
+                    } else {
+                        resultsContainer.innerHTML = `<p style="color: red;">錯誤：${result.error || '發生未知錯誤'}</p>`;
+                    }
+                } catch (error) {
+                    console.error('發生錯誤:', error);
+                    alert('文件上傳失敗，請檢查伺服器！');
+                }
+            });
+
+            // IPFS驗證
+            document.getElementById('verifyBtn').addEventListener('click', async () => {
+                const ipfsHash = document.getElementById('ipfsHashInput').value.trim();
+                if (!ipfsHash) {
+                    alert('請輸入有效的 IPFS 哈希值！');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(VERIFY_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ipfs_hash: ipfsHash }),
+                    });
+
+                    const result = await response.json();
+                    const verifyResultContainer = document.getElementById('verifyResult');
+                    verifyResultContainer.innerHTML = '';
+
+                    if (response.ok) {
+                        verifyResultContainer.innerHTML = `<p style="color: green;">驗證成功：${result.message}</p>`;
+                    } else {
+                        verifyResultContainer.innerHTML = `<p style="color: red;">驗證失敗：${result.error || '未知錯誤'}</p>`;
+                    }
+                } catch (error) {
+                    console.error('驗證失敗:', error);
+                    alert('驗證過程中出現錯誤，請檢查伺服器！');
+                }
+            });
+            // 檢查授權
+            document.getElementById('checkAuthBtn').addEventListener('click', async () => {
+                const userAddress = document.getElementById('checkUserAddress').value.trim();
+
+                if (!userAddress) {
+                    alert('請輸入有效的用戶地址！');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(CHECK_AUTH_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_address: userAddress }),
+                    });
+
+                    const result = await response.json();
+                    const authCheckResult = document.getElementById('authCheckResult');
+                    authCheckResult.innerHTML = '';
+
+                    if (response.ok) {
+                        authCheckResult.innerHTML = `<p style="color: green;">${result.message}</p>`;
+                    } else {
+                        authCheckResult.innerHTML = `<p style="color: red;">授權檢查失敗：${result.error}</p>`;
+                    }
+                } catch (error) {
+                    console.error('檢查授權過程中出錯:', error);
+                    alert('檢查授權過程中出錯，請檢查伺服器！');
+                }
+            });
+            
+
+        // 下載文件
+        document.getElementById('downloadBtn').addEventListener('click', async () => {
+            const userAddress = document.getElementById('downloadUserAddress').value.trim();
+            const ipfsHash = document.getElementById('downloadIpfsHash').value.trim();
+
+            if (!userAddress || !ipfsHash) {
+                alert('請輸入有效的用戶地址和 IPFS 哈希值！');
+                return;
+            }
+
+            try {
+                const response = await fetch(DOWNLOAD_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_address: userAddress, ipfs_hash: ipfsHash }),
+                });
+
+                const result = await response.json();
+                const downloadResultContainer = document.getElementById('downloadResult');
+                downloadResultContainer.innerHTML = '';
+
+                if (response.ok) {
+                    downloadResultContainer.innerHTML = `
+                        <p style="color: green;">${result.message}</p>
+                        <p>下載耗時: ${result.time_taken.toFixed(4)} 秒</p>
+                        <textarea style="width: 100%; height: 100px;">${result.encrypted_data}</textarea>
+                    `;
+                } else {
+                    downloadResultContainer.innerHTML = `<p style="color: red;">下載失敗：${result.error || result.message}</p>`;
+                }
+            } catch (error) {
+                console.error('下載過程中出錯:', error);
+                alert('下載過程中出錯，請檢查伺服器！');
+            }
+        });
+        </script>
+    </div>
+</body>
+</html>
+
