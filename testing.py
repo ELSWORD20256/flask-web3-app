@@ -52,7 +52,7 @@ def encrypt_based_on_privacy(privacy_level, data):
 
 
 # 定義存儲加密數據的目錄
-ENCRYPTED_DATA_FOLDER = "E:/力文論文/encrypted_data"
+ENCRYPTED_DATA_FOLDER = os.path.join(os.getcwd(), "encrypted_data")
 os.makedirs(ENCRYPTED_DATA_FOLDER, exist_ok=True)
 
 def save_encrypted_data(record_id, encryption_algorithm, encrypted_data, key, extra_param):
@@ -115,7 +115,7 @@ label_encoder_privacy = joblib.load(os.path.join(os.getcwd(), "label_encoder_pri
 IPFS_API_URL = 'http://127.0.0.1:5001/api/v0/add'
 
 # Web3 初始化
-w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:7545'))
+w3 = Web3(Web3.HTTPProvider(' https://5fda-203-69-229-89.ngrok-free.app'))
 with open(os.path.join(os.getcwd(), "contracts", "SecureDataStorage.json"), encoding='utf-8') as f:
     contract_data = json.load(f)
 contract_abi = contract_data['abi']

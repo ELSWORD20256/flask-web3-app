@@ -119,11 +119,12 @@
 
         
         <script>
-            const UPLOAD_API_URL = 'http://127.0.0.1:5000/upload';
-            const VERIFY_API_URL = 'http://127.0.0.1:5000/verify';
-            const AUTH_API_URL = 'http://127.0.0.1:5000/authorize_wallet';
-            const CHECK_AUTH_API_URL = 'http://127.0.0.1:5000/check-authorization';
-            const DOWNLOAD_API_URL = 'http://127.0.0.1:5000/download';
+            const BASE_API_URL = ' https://6d54-203-69-229-89.ngrok-free.app';  // 替換成你的 Render 網址
+            const UPLOAD_API_URL = `${BASE_API_URL}/upload`;
+            const VERIFY_API_URL = `${BASE_API_URL}/verify`;
+            const AUTH_API_URL = `${BASE_API_URL}/authorize_wallet`;
+            const CHECK_AUTH_API_URL = `${BASE_API_URL}/check-authorization`;
+            const DOWNLOAD_API_URL = `${BASE_API_URL}/download`;
             
             // 授權錢包
             document.getElementById("authorizeWalletBtn").addEventListener("click", async () => {
